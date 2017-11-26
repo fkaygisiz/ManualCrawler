@@ -3,6 +3,7 @@ package com.example.demo.model;
 import java.io.IOException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.util.Calendar;
 
 import org.jsoup.Connection.Response;
 import org.slf4j.Logger;
@@ -25,8 +26,8 @@ public class ChildCallResult {
 	protected Response response;
 
 	public ChildCallResult(URL url) {
+		Long startTime = Calendar.getInstance().getTimeInMillis();
 		this.url = url;
-
 		try {
 			this.response = new URLConnect(url).execute();
 
@@ -34,13 +35,18 @@ public class ChildCallResult {
 			this.httpCode = response.statusCode();
 
 		} catch (UnknownHostException uhe) {
-			log.error("UnknownHost Exception: " + uhe.getMessage(), uhe);
+			log.error("UnknownHost Exception for URL " + url + " , " + uhe.getMessage(), uhe);
 			this.exception = "UnknownHost";
 			this.httpCode = 500;
 		} catch (IOException e) {
-			log.error("IO Exception: " + e.getMessage(), e);
+			log.error("IO Exception for URL " + url + " , " + e.getMessage(), e);
 			this.exception = e.getMessage();
 			this.httpCode = 500;
+		} finally {
+			log.error("Time took for URL {} , elapsed time {}", url, (Calendar.getInstance().getTimeInMillis() - startTime));
+		}
+		if(url.toExternalForm().equals("https://www.google.com.tr/intl/tr/options/")) {
+			System.out.println("https://www.google.com.tr/intl/tr/options/");
 		}
 	}
 

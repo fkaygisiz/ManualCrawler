@@ -20,7 +20,12 @@ public class MainCallResult extends ChildCallResult {
 	private boolean hasLogin;
 
 	private String title;
-	private int headLevel1, headLevel2, headLevel3, headLevel4, headLevel5, headLevel6;
+	private int headLevel1;
+	private int headLevel2;
+	private int headLevel3;
+	private int headLevel4;
+	private int headLevel5;
+	private int headLevel6;
 
 	private List<ChildCallResult> children = new ArrayList<>();
 
@@ -39,11 +44,22 @@ public class MainCallResult extends ChildCallResult {
 				this.title = this.document.title();
 			}
 			this.hasLogin = doesPageHaveALogin(this.document);
+			processHeaderCounts(this.document);
 		} catch (IOException e) {
 			log.error("IO Exception: " + e.getMessage(), e);
 			this.exception = e.getMessage();
 			this.httpCode = 500;
 		}
+	}
+
+	private void processHeaderCounts(Document doc) {
+		this.headLevel1 = doc.getElementsByTag("H1").size();
+		this.headLevel2 = doc.getElementsByTag("H2").size();
+		this.headLevel3 = doc.getElementsByTag("H3").size();
+		this.headLevel4 = doc.getElementsByTag("H4").size();
+		this.headLevel5 = doc.getElementsByTag("H5").size();
+		this.headLevel6 = doc.getElementsByTag("H6").size();
+
 	}
 
 	private boolean doesPageHaveALogin(Document doc) {
@@ -67,7 +83,7 @@ public class MainCallResult extends ChildCallResult {
 		return false;
 	}
 
-	public boolean hasLogin() {
+	public boolean isHasLogin() {
 		return hasLogin;
 	}
 
@@ -112,16 +128,15 @@ public class MainCallResult extends ChildCallResult {
 		// String url = "http://fatihkaygisiz.com";
 		URL url = new URL(urlStr);
 		MainCallResult cr = new MainCallResult(url);
-		System.out.println(cr.hasLogin());
+		System.out.println(cr.isHasLogin());
 	}
+
 	public Document getDocument() {
 		return document;
 	}
 
-
 	public List<ChildCallResult> getChildren() {
 		return children;
 	}
-
 
 }

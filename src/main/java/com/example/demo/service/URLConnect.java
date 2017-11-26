@@ -22,7 +22,7 @@ public class URLConnect {
 	public Response execute() throws IOException {
 		return Jsoup.connect(url.toExternalForm())
 		        .followRedirects(true) //to follow redirects
-		        .timeout(50000)
+		        .timeout(1000)
 		        .userAgent("Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36")
 		        .execute();
 	}

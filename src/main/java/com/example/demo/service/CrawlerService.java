@@ -6,6 +6,7 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -50,13 +51,12 @@ public class CrawlerService {
 			return;
 		}
 		List<LinkCaller> innerLinkTasks = new ArrayList<>();
-		List<Element> anchors = doc.getElementsByTag("a").stream().filter((e) -> {
+		Set<String> anchors = doc.getElementsByTag("a").stream().filter((e) -> {
 			String href = e.attr("href");
 			return href.startsWith("/") || href.toLowerCase().startsWith("http://")
 					|| href.toLowerCase().startsWith("https://");
-		}).collect(Collectors.toList());
-		for (Element anchor : anchors) {
-			String hrefLink = anchor.attr("href");
+		}).map(e->e.attr("href")).collect(Collectors.toSet());
+		for (String hrefLink : anchors) {
 			log.debug("hrefLink: ", hrefLink);
 			try {
 				URL url2 = new URL(callResult.getUrl(), hrefLink);
