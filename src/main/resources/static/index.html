@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1" />
+<title>Site Crawler</title>
+
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bs4-4.0.0-beta/jq-3.2.1/dt-1.10.16/datatables.min.css"/>
+<script
+	src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js"
+	integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh"
+	crossorigin="anonymous"></script>
+ 
+<script type="text/javascript" src="https://cdn.datatables.net/v/bs4-4.0.0-beta/jq-3.2.1/dt-1.10.16/datatables.min.js"></script>
+</head>
+<body style="margin:15px 15px;">
+	<form>
+		<div class="form-group">
+			<label for="url-input">Please enter URL to crawl</label> <input
+				id="url-input" type="text" class="form-control" /> <small
+				id="url-input-help" class="form-text text-muted">Please
+				start with http:// or https://</small>
+		</div>
+		<div class="form-group">
+			<button type="button" id="submit-button" class="btn btn-primary"
+				onclick="crawl()">Search</button>
+		</div>
+	</form>
+	<div id="loading-div" class="alert alert-warning" role="alert">
+	  Loading!...
+	</div>
+	<div id="error-div" class="alert alert-danger" role="alert">
+	  An error occured!
+	</div>	
+	
+	<div id="results">
+		<hr class="divider">
+		<h2 for="mainResultTable">Page Result</h2>
+		<table id="mainResultTable" class="display" style="width: 100%"></table>
+		<hr class="divider">
+		<h2 for="internalLinksTable">Internal Links</h2>
+		<table id="internalLinksTable" class="display" style="width: 100%"></table>
+		<hr class="divider">
+		<h2 for="externalLinksTable">External Links</h2>
+		<table id="externalLinksTable" class="display" style="width: 100%"></table>
+	</div>
+</body>
+<script type="text/javascript">
+	$(document).ready(function() {
+		$('#url-input').on('input', function() {
+			check_submit();
+		});
+		check_submit();//disable search button at startup
+		
+		$("#results").hide();
+		$("#error-div").hide();
+		$("#loading-div").hide();
+		var link_columns = [ {
+			title : "URL",
+			data : "url"
+		}, {
+			title : "Accessible",
+			data : "accessible"
+		}, {
+			title : "HTTP Code",
+			data : "httpCode"
+		}, {
+			title : "Error Taken",
+			data : "exception"
+		} ];
+		
+		var mainResultTable = $('#mainResultTable').DataTable({
+			data : [],
+			columns : [ {
+				title : "URL",
+				data : "url"
+			}, {
+				title : "Accessible",
+				data : "accessible"
+			}, {
+				title : "HTTP Code",
+				data : "httpCode"
+			}, {
+				title : "Error Taken",
+				data : "exception"
+			} , {
+				title : "Has Login",
+				data : "hasLogin"
+			}, {
+				title : "Title",
+				data : "title"
+			}, {
+				title : "Head Level1 Count",
+				data : "headLevel1",
+				data : "headLevel1"
+			}, {
+				title : "Head Level2 Count",
+				data : "headLevel2"
+			}, {
+				title : "Head Level3 Count",
+				data : "headLevel3"
+			}, {
+				title : "Head Level4 Count",
+				data : "headLevel4"
+			}, {
+				title : "Head Level5 Count",
+				data : "headLevel5"
+			}, {
+				title : "Head Level6 Count",
+				data : "headLevel6"
+			}, {
+				title : "External Link Count",
+				data : "internalLinks.length"
+			}, {
+				title : "Internal Link Count",
+				data : "externalLinks.length"
+			}, {
+				title : "HTML Version",
+				data : "documentType"
+			} ]
+		});
+
+		var internalLinksTable =$('#internalLinksTable').DataTable({
+			data : [],
+			columns : link_columns
+		});
+		var externalLinksTable = $('#externalLinksTable').DataTable({
+			data : [],
+			columns : link_columns
+		});
+	});
+	
+	function crawl() {
+		$("#loading-div").show();
+		$("#results").hide();
+		$("#error-div").hide();
+		var jqxhr = $.get("rest/api", {
+			url : $("#url-input").val()
+		}).done(function(data) {
+			$("#loading-div").hide();
+			$("#results").show();
+			redrawDataTable("#mainResultTable", [data]);
+			redrawDataTable("#internalLinksTable", data.internalLinks);
+			redrawDataTable("#externalLinksTable", data.externalLinks);
+		}).fail(function() {
+			$("#loading-div").hide();
+			$("#error-div").show();
+			redrawDataTable("#mainResultTable", []);
+			redrawDataTable("#internalLinksTable", []);
+			redrawDataTable("#externalLinksTable", []);
+		});
+	}
+
+	function isUrlValid(url) {
+		return /^(https?|s?ftp):\/\/(((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:)*@)?(((\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5]))|((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.?)(:\d*)?)(\/((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)+(\/(([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)*)*)?)?(\?((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)|[\uE000-\uF8FF]|\/|\?)*)?(#((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)|\/|\?)*)?$/i
+				.test(url);
+	}
+
+	function redrawDataTable(datatableId, newData) {
+		$(datatableId).DataTable().clear().draw();
+		$(datatableId).DataTable().rows.add(newData); // Add new data
+		$(datatableId).DataTable().columns.adjust().draw(); // Redraw the DataTable
+	}
+
+	function check_submit() {
+		var urlValue = $("#url-input").val();
+		if (isUrlValid(urlValue)/*!urlValue || !(urlValue.toLowerCase().indexOf("http://") == 0 || urlValue.toLowerCase().indexOf("https://") == 0)*/) {
+			$("#submit-button").removeAttr("disabled");
+			$("#url-input-help").hide();
+		} else {
+			$("#submit-button").attr("disabled", true);
+			$("#url-input-help").show();
+		}
+	}
+</script>
+</html>

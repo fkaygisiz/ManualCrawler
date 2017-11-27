@@ -4,16 +4,18 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.DocumentType;
+import org.jsoup.nodes.Node;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-public class MainCallResult extends ChildCallResult {
+public class MainCallResult extends CallResult {
 
 	private static final Logger log = LoggerFactory.getLogger(MainCallResult.class);
 
@@ -27,10 +29,13 @@ public class MainCallResult extends ChildCallResult {
 	private int headLevel5;
 	private int headLevel6;
 
-	private List<ChildCallResult> children = new ArrayList<>();
+	private List<ChildCallResult> internalLinks = new ArrayList<>();
+	private List<ChildCallResult> externalLinks = new ArrayList<>();
 
 	@JsonIgnore
 	private Document document;
+
+	private String documentType;
 
 	public MainCallResult() {
 		super();
@@ -39,7 +44,11 @@ public class MainCallResult extends ChildCallResult {
 	public MainCallResult(URL url) {
 		super(url);
 		try {
+			if(this.response == null) {
+				throw new IOException("Unable To Connect");
+			}
 			this.document = this.response.parse();
+			this.documentType = getHtmlVersion(this.document);
 			if (!StringUtils.isEmpty(this.document.title())) {
 				this.title = this.document.title();
 			}
@@ -50,6 +59,39 @@ public class MainCallResult extends ChildCallResult {
 			this.exception = e.getMessage();
 			this.httpCode = 500;
 		}
+	}
+
+	private String getHtmlVersion(Document doc) {
+		List<Node>nods = doc.childNodes();
+        for (Node node : nods) {
+           if (node instanceof DocumentType) {
+               return getHTMLTypeFromDocumentType(node);
+                 
+           }
+       }
+        return "HTML";
+	}
+
+	private String getHTMLTypeFromDocumentType(Node node) {
+		DocumentType documentType = (DocumentType)node;
+		   String publicId = documentType.attr("publicid").replaceAll(" ", "").toLowerCase();
+		     if(documentType.toString().replaceAll(" ", "").equalsIgnoreCase("<!DOCTYPEhtml>")) {//https://www.w3.org/QA/2002/04/valid-dtd-list.html and https://www.w3schools.com/html/html_intro.asp
+		    	 return "HTML 5";
+		     }else if(publicId.contains("xhtml1.0")) {
+		    	 return "XHTML 1.0";
+		     }else if(publicId.contains("xhtml1.1")) {
+		    	 return "XHTML 1.1";
+		     }else if(publicId.contains("xhtmlbasic1.0")) {
+		    	 return "XHTML Basic 1.0";
+		     }else if(publicId.contains("4.01")) {
+		    	 return "HTML 4";
+		     }else if(publicId.contains("3.2")) {
+		    	 return "HTML 3.2";
+		     }else if(publicId.contains("2.0")) {
+		    	 return "HTML 2.0";
+		     }else {
+		    	 return "HTML";
+		     }
 	}
 
 	private void processHeaderCounts(Document doc) {
@@ -68,12 +110,14 @@ public class MainCallResult extends ChildCallResult {
 	}
 
 	private boolean doesDocHavePasswordField(Document doc) {
-		return !CollectionUtils.isEmpty(doc.getElementsByAttribute("password"));
+		return !doc.getElementsByAttribute("type").stream().filter(e ->"password".equalsIgnoreCase(e.attr("type"))).collect(Collectors.toList()).isEmpty() ;
 	}
 
 	private boolean doesDocHaveFormContainingLoginAction(Document doc) {
 		return doc.getElementsByAttribute("action").stream()
-				.filter(e -> e.attr("action").toLowerCase().contains("login")).findAny().isPresent();
+				.filter(e -> (e.attr("action").toLowerCase().contains("login")
+						|| e.attr("action").toLowerCase().contains("signin")))
+				.findAny().isPresent();
 	}
 
 	private boolean doesTitleIndicateLoginPage(String title) {
@@ -85,14 +129,6 @@ public class MainCallResult extends ChildCallResult {
 
 	public boolean isHasLogin() {
 		return hasLogin;
-	}
-
-	public boolean isAccessible() {
-		return accessible;
-	}
-
-	public int getHttpCode() {
-		return httpCode;
 	}
 
 	public String getTitle() {
@@ -123,20 +159,29 @@ public class MainCallResult extends ChildCallResult {
 		return headLevel6;
 	}
 
-	public static void main(String[] args) throws IOException {
-		String urlStr = "https://www.spiegel.de/meinspiegel/login.html";
-		// String url = "http://fatihkaygisiz.com";
-		URL url = new URL(urlStr);
-		MainCallResult cr = new MainCallResult(url);
-		System.out.println(cr.isHasLogin());
-	}
-
 	public Document getDocument() {
 		return document;
 	}
 
-	public List<ChildCallResult> getChildren() {
-		return children;
+	public void addChild(ChildCallResult childCallResult) {
+		if (childCallResult.isInternalLink()) {
+			internalLinks.add(childCallResult);
+		} else {
+			externalLinks.add(childCallResult);
+		}
+
+	}
+
+	public List<ChildCallResult> getInternalLinks() {
+		return internalLinks;
+	}
+
+	public List<ChildCallResult> getExternalLinks() {
+		return externalLinks;
+	}
+
+	public String getDocumentType() {
+		return documentType;
 	}
 
 }

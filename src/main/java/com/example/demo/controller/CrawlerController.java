@@ -25,14 +25,13 @@ public class CrawlerController {
 
 	@RequestMapping(method = RequestMethod.GET)
 	public MainCallResult crawl(@RequestParam String url) {
-		log.debug("url: ", url);
 		try {
 			URL url2 = new URL(url);
 			return crawlerService.crawl(url2);
 		} catch (MalformedURLException e) {
 			log.error("MalformedURLException error occured. URL is " + url, e);
 			MainCallResult callResult = new MainCallResult();
-			callResult.setException(e.getMessage());
+			callResult.setException("MalformedURLException occured");
 			return callResult;
 		}
 	}
